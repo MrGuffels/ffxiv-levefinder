@@ -11,14 +11,15 @@ There is no single column that says "this NPC hands out these leves," and the tw
 
 City-state hubs are the exception at steps 2–3: no leve names them, so their settlement comes from their map placement, and they aggregate battlecraft/gathering/fisher across the whole `Leve.Town`. Step 4 still applies to them unchanged — hubs have their own crafting leves, they just do not inherit the settlements'.
 
-Two traps:
+Three traps:
 
 - `Leve.Level{Levemete}` does **not** always point at a levemete. On crafting and fishing leves it points at the *client*.
 - `PlaceName{Issued}` does **not** decide who offers a crafting leve. Leve 158 is issued at Limsa Lominsa but is offered by Swygskyf at Swiftperch.
+- `PlaceName{Issued}` can simply be **wrong data** on a handful of Fisher leves, even outside the crafting mechanism above — see [Step 3a](#step-3a---a-known-bad-fisher-block).
 
 ### Verification status
 
-The model reproduces in-game debugger output for six levemetes — all three city-state hubs (T'mokkri `1000970`, Gontrant `1000101`, Eustace `1001794`) and three settlements (Swygskyf `1001788`, Orwen `1001791`, Nyell `1000823`). The settlement results match exactly; the hub results contain every observed row across multi-capture scrolls of their lists.
+The model reproduces in-game debugger output for seven levemetes — all three city-state hubs (T'mokkri `1000970`, Gontrant `1000101`, Eustace `1001794`) and four settlements (Swygskyf `1001788`, Orwen `1001791`, Nyell `1000823`, Wyrkholsk `1004342`). The settlement results match exactly; the hub results contain every observed row across multi-capture scrolls of their lists.
 
 Note that the in-game list is **capped per class and level** — 4 battlecraft, 2 gathering, 3 crafting. You can never see a levemete's full pool at once, so absence from an in-game capture is not evidence that a leve is not offered. Only presence is.
 
@@ -74,7 +75,7 @@ Group every leve by `PlaceName{Issued}` and each settlement resolves to exactly 
 | Issued at | Leves | Levemete(s) |
 |---|---|---|
 | Swiftperch | 23 | Swygskyf |
-| Red Rooster Stead | 30 | Wyrkholsk |
+| Red Rooster Stead | 30 | Wyrkholsk (+ 8 more misfiled as Limsa Lominsa — see [Step 3a](#step-3a---a-known-bad-fisher-block)) |
 | Aleport | 20 | Orwen |
 | Costa del Sol | 56 | Nahctahr + C'lafumyn (GC) |
 | Camp Drybone | 29 | Poponagu + Kikiri (GC) |
@@ -91,6 +92,17 @@ For **Battlecraft, Miner, Botanist and Fisher** this is the whole story: the lev
 Where a Grand Company levemete shares a settlement, split on `LeveAssignmentType`: keys 13/14/15 (The Maelstrom, Order of the Twin Adder, Immortal Flames) go to the GC levemete, everything else to the regular one.
 
 **Crafting leves do not follow this** — see the next section.
+
+## Step 3a — a known bad Fisher block
+
+Rule 3 above assumes `PlaceName{Issued}` is trustworthy for Battlecraft/Miner/Botanist/Fisher. It usually is, but one Fisher block breaks it outright rather than through the crafting mechanism: leves 754–761 (`LeveClient` 141) carry `PlaceName{Issued}` = Limsa Lominsa, yet in game **Wyrkholsk** (Red Rooster Stead, `1004342`) hands them out, confirmed against a live capture on 2026-09-18. It's simply bad data on those eight rows — not a second hidden allocation rule:
+
+- The client NPC named on those leves (Unsynwilf Greensleeves) physically stands in Limsa's Upper Decks, not Red Rooster Stead.
+- Their `FishingSpot` rows sit in Limsa Lominsa Upper Decks and Middle La Noscea — neither matches Wyrkholsk's own zone (Lower La Noscea) either.
+- The Limsa hub (T'mokkri) *also* shows these same eight leves in game. That side isn't broken by the bad data — hub aggregation goes by `Town` (rule in [Step 4](#step-4---the-three-city-hubs)), not `PlaceName{Issued}`, so T'mokkri picks them up regardless. Only the regional match for Wyrkholsk needed a fix, since it depends on `PlaceName{Issued}` matching Wyrkholsk's own place.
+- This is not a systemic Fisher problem: Orwen's Fisher block (766–769) and Swygskyf's (762–765) both have correct `PlaceName{Issued}` values, and Nyell has no Fisher leves at all (not a coastal levemete). As far as verified, `LeveClient` 141 is the only offender.
+
+Both ports special-case this with a small `LeveClient → levemete ENpc` override table (`FisherClientOverride` in [`src/LeveFinder/Program.cs`](../src/LeveFinder/Program.cs) and [`src/LeveFinder.Lumina/Program.cs`](../src/LeveFinder.Lumina/Program.cs)), consulted alongside the normal `PlaceName{Issued}` match. If another regional levemete turns up missing Fisher leves the same way, add its `LeveClient` id there.
 
 ## Step 3b — crafting is allocated by `LeveRewardItem`
 
