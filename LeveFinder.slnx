@@ -1,8 +1,7 @@
 <Solution>
-  <Folder Name="/external/" />
-  <Folder Name="/external/SaintCoinach/">
-    <Project Path="external/SaintCoinach/DotSquish/DotSquish.csproj" />
-    <Project Path="external/SaintCoinach/SaintCoinach/SaintCoinach.csproj" />
+  <Folder Name="/SaintCoinach/">
+    <Project Path="SaintCoinach/DotSquish/DotSquish.csproj" />
+    <Project Path="SaintCoinach/SaintCoinach/SaintCoinach.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/LeveFinder/LeveFinder.csproj" />

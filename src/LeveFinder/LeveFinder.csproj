@@ -8,6 +8,6 @@
     <NoWarn>$(NoWarn);NETSDK1138</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\external\SaintCoinach\SaintCoinach\SaintCoinach.csproj" />
+    <ProjectReference Include="..\..\SaintCoinach\SaintCoinach\SaintCoinach.csproj" />
   </ItemGroup>
 </Project>
