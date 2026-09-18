@@ -91,9 +91,17 @@ with every release, so this mismatch is expected, not a sign of drift).
 
 ## Status
 
-Step 1 (scaffold) and the struct-shape questions are done — see the table
-above. Next: step 2, port the "is this NPC a levemete" test using the
-confirmed `ENpcData`/`RowRef` API and check it against the 36-NPC count
-from [project_levemete_model](../../.claude/projects/c--Users-mrben-Documents-GitHub-ffxiv-levefinder/memory/project_levemete_model.md).
-That step does need a real game install path (sqpack data, not just the
-assembly), unlike the struct-shape dump.
+- **Step 1 (scaffold) — done.** Struct shapes confirmed, see table above.
+- **Step 2 (levemete test) — done and verified against real game data.**
+  `dotnet run -- "<gamePath>"` in `src/LeveFinder.Lumina` loads
+  `game/sqpack` directly with `Lumina.GameData` (no ARealmReversed
+  equivalent needed — pass the sqpack folder, not the install root) and
+  finds **exactly 36 NPCs** with a `GuildleveAssignment`, the same 36 IDs
+  the SaintCoinach engine finds. Confirms `RowRef.Is<T>()` /
+  `.GetValueOrDefault<T>()` works correctly on `ENpcBase.ENpcData`.
+  Bonus: `GuildleveAssignment.Type` also confirms every post-ARR levemete
+  in ChilledLeves' hardcoded list (Eloin/Temple, Eirikur/Crystarium,
+  Grigge/Gleaner, Malihali/Tuliyollal) is a real levemete, not a client.
+- **Next: step 3**, the two-hop `Level{Levemete}` → settlement resolution
+  (`Leve.LevelLevemete.Value.Object`), needed for the non-hub fixtures
+  (Swygskyf/Orwen/Nyell).
