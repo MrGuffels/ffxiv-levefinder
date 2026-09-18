@@ -49,6 +49,24 @@ flowchart TD
     K --> L{"Row is unshipped?\n(untranslated JP name,\nstub description)"}
     L -- yes --> M["Excluded by default\n(--include-unused keeps it)"]
     L -- no --> N["Final leve list"]
+
+    classDef start fill:#e1eaff,stroke:#3355aa,color:#1a1a2e
+    classDef decision fill:#f0f0f0,stroke:#666666,color:#1a1a1a
+    classDef reject fill:#ffd9d9,stroke:#b33939,color:#4d1a1a
+    classDef designated fill:#dbeeff,stroke:#2b6cb0,color:#1a2e40
+    classDef hub fill:#ffe8cc,stroke:#c2760f,color:#402c0c
+    classDef merge fill:#eeeeee,stroke:#888888,color:#1a1a1a
+    classDef excluded fill:#f0f0f0,stroke:#999999,color:#4d4d4d
+    classDef result fill:#d9f7e6,stroke:#2f9e5c,color:#0d3320
+
+    class A start
+    class B,D,L decision
+    class C reject
+    class E,F,G designated
+    class H,I,J hub
+    class K merge
+    class M excluded
+    class N result
 ```
 
 A leve group "wins" a settlement when it holds the most of that group's rows there; a tie between a city and its outlying settlement goes to the city. See [docs/DATA-RELATIONSHIP.md](docs/DATA-RELATIONSHIP.md) for why each of these steps exists and the game-data evidence behind it.
