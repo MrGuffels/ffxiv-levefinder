@@ -143,4 +143,88 @@ with every release, so this mismatch is expected, not a sign of drift).
 
 - **Next:** try swapping the standalone `Lumina.GameData` bootstrap for
   `Svc.Data`/ECommons calls to prove the same resolution code runs live
-  inside a Dalamud plugin process — the actual goal for ChilledLeves.
+  inside a Dalamud plugin process — the actual goal for ChilledLeves. See
+  the implementation sketch below.
+
+## Implementation sketch: running this inside ChilledLeves
+
+Pseudocode only — not built or run, since it needs to load inside a live
+Dalamud plugin process to test at all. Two independent pieces: getting
+`ResolveLeves` to compile against `Svc.Data` instead of a standalone
+`GameData`, and deciding when ChilledLeves actually calls it.
+
+### 1. Data access: swap the bootstrap, keep the logic
+
+`ResolveLeves` never touches `GameData` directly except to call
+`GetExcelSheet<T>()` — every other line is pure LINQ over the row structs.
+So the port is a one-line change per call site, not a rewrite:
+
+```csharp
+// LeveFinder.Lumina (standalone):
+var gameData = new Lumina.GameData(sqpackPath);
+var leveSheet = gameData.GetExcelSheet<Leve>();
+
+// ChilledLeves (in-plugin) - same shape ExcelHelper.cs already uses:
+var leveSheet = Svc.Data.GetExcelSheet<Leve>();
+```
+
+Concretely: add the sheets `ResolveLeves` needs to `ExcelHelper.cs` next to
+the existing ones —
+
+```csharp
+internal static ExcelSheet<ENpcBase> Sheet_ENpcBase;
+internal static ExcelSheet<Town> Sheet_Town;
+internal static ExcelSheet<LeveAssignmentType> Sheet_LeveAssignmentType;
+// Leve, Level, TerritoryType, ENpcResident are already loaded.
+
+// in Init():
+Sheet_ENpcBase = Svc.Data.GetExcelSheet<ENpcBase>();
+Sheet_Town = Svc.Data.GetExcelSheet<Town>();
+Sheet_LeveAssignmentType = Svc.Data.GetExcelSheet<LeveAssignmentType>();
+```
+
+Then move `ResolveLeves` and its helpers (`IsLevemete`, `IsCrafting`,
+`IsGrandCompany`, `RewardGroupOf`, `IsUnused`, `CityPlaceKeys`,
+`CityPlaceKey`, `WinningPlaceKey`, `ResolveTownByLocation`) into a new
+static class, e.g. `LeveInfo.LeveResolver`, reading through
+`ExcelHelper.Sheet_*` instead of a `GameData` parameter. No algorithmic
+change — same functions, same LINQ, different sheet source.
+
+### 2. When ChilledLeves calls it — three options, ordered by effort
+
+**a. Startup precompute (lowest risk, recommended first cut).** On plugin
+load, after `ExcelHelper.Init()`, run `ResolveLeves` once per NPC id
+already present as a key in `Levemete_Info` and overwrite that entry's
+`Leves` list in memory. Keeps every hand-placed field (`Name`,
+`TerritoryId`, `Npc_InteractZone`, `Mount`/`Fly`, ...) exactly as
+hardcoded today; only the `Leves` list becomes computed. No behavior
+change if the computed list matches what's hardcoded now — this is
+exactly the regression posture already proven in this branch, just moved
+in-process. Cheapest to add, cheapest to revert.
+
+```csharp
+// after ExcelHelper.Init():
+foreach (var (npcId, info) in Levemete_Info)
+    if (LeveResolver.TryResolve(npcId, out var leves))
+        info.Leves = leves; // else: leave the hardcoded fallback in place
+```
+
+**b. Generator mode, unchanged from the original plan.** Keep
+`Levemete_Info` fully hand-authored; instead run `LeveFinder.Lumina` (or
+a ChilledLeves debug command wrapping the same resolver) offline/on
+demand to print a fresh `Leves = new() { ... }` block per NPC, and paste
+it in during a content update. Zero runtime risk, but back to manual
+copy-paste and periodic drift versus live game data.
+
+**c. Fully dynamic (most invasive, not recommended yet).** Drop
+`Levemete_Info[id].Leves` entirely and call the resolver on demand
+wherever the plugin currently reads that list. Only worth it once (a) is
+proven stable over real usage — no reason to take on the extra surface
+area before then.
+
+### Open risk for whichever option is chosen
+
+`ResolveLeves` walks every row of `Leve`/`Level`/`ENpcBase` — cheap
+offline, unmeasured at 60fps-adjacent Dalamud framework-thread cost. If
+using option (a), only run it once at plugin load (or behind a manual
+"refresh" command), never on a hot path or per-frame.
