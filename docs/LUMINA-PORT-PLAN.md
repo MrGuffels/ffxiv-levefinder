@@ -37,23 +37,36 @@ when scaffolding.
   `GuildleveAssignment` sheet SaintCoinach uses may need the same manual
   treatment** — first thing to check when scaffolding, not assume away.
 
-## Column-by-column porting risk (from [Program.cs](../src/LeveFinder/Program.cs))
+## Column-by-column porting risk — resolved by reflecting on the real assembly
 
-Every accessor in the current engine either uses a SaintCoinach-only API or
-a raw-column workaround that has no direct Lumina equivalent yet:
+`src/LeveFinder.Lumina` is a diagnostic console app (no game install needed)
+that loads the pinned Lumina.Excel assembly and reflects over the row
+structs the SaintCoinach engine depends on. Run with `dotnet run` from that
+folder. Findings, much better than feared:
 
-| Current (SaintCoinach) | Lumina concern |
+| Current (SaintCoinach) | Lumina equivalent (confirmed) |
 |---|---|
-| `npc.Base.GetData(i)` scanning `ENpcBase.DataCount` generic-ref slots for a `GuildleveAssignment` row | Lumina's generated `ENpcBase` may expose `ENpcData` as a fixed-size array of `RowRef` (untyped, since each slot can point at different sheets) — needs manual per-slot resolution, same shape as today's loop but through `RowRef.Is<GuildleveAssignment>()`/`.GetValueOrDefault<T>()` if that API exists in the pinned version. |
-| `leve.LevemeteLevel.Object` (`Leve.Level{Levemete}` → `Level` → `Level.Object`) | Same two-hop `RowRef` chase; property names on the generated `Leve`/`Level` structs need discovering — not guaranteed to match SaintCoinach's friendly names. |
-| `((IRelationalRow)leve).GetRaw("LeveRewardItem")` — raw column access because SaintCoinach's `Leve` wrapper doesn't name it | No `IRelationalRow` in Lumina. If the generated `Leve` struct doesn't expose this column by name either, need offset-based raw read like the `LeveGuildleveAssignment` workaround above. |
-| `((IRelationalRow)leve).GetRaw("Town")` | Same concern as above. |
-| `leve.PlaceNameIssued`, `leve.LeveAssignmentType` | Probably fine as named properties — least risky part of the port. |
-| `gameData.GetSheet("Town")` (untyped sheet, only `Name`/`Icon` columns) | `Town` has no generated Lumina binding used anywhere in ChilledLeves today — may need a hand-written struct, same pattern as `LeveGuildleveAssignment`. |
+| `npc.Base.GetData(i)` scanning `ENpcBase.DataCount` generic-ref slots for a `GuildleveAssignment` row | `ENpcBase.ENpcData` is `Collection<RowRef>` (untyped). Iterate it and call `.Is<GuildleveAssignment>()` / `.GetValueOrDefault<GuildleveAssignment>()` per slot — same loop shape as today. |
+| `leve.LevemeteLevel.Object` (`Leve.Level{Levemete}` → `Level` → `Level.Object`) | `Leve.LevelLevemete` is a named `RowRef<Level>`; `Level.Object` is an untyped `RowRef` (can point at more than `ENpcBase`, same as SaintCoinach) — resolve with `.GetValueOrDefault<ENpcBase>()`. |
+| `((IRelationalRow)leve).GetRaw("LeveRewardItem")` raw-column hack | **Named property**: `Leve.LeveRewardItem` is `RowRef<T>`. No raw access needed at all. |
+| `((IRelationalRow)leve).GetRaw("Town")` raw-column hack | **Named property**: `Leve.Town` is `RowRef<Town>`. No raw access needed. |
+| `leve.PlaceNameIssued`, `leve.LeveAssignmentType` | Named `RowRef<T>` properties, as expected — least risky part confirmed. |
+| `gameData.GetSheet("Town")` (untyped SaintCoinach sheet) | `Town` **is** a generated sheet (`Lumina.Excel.Sheets.Town`, `Name`/`Icon`/`RowId`) — no hand-written struct needed, unlike the guess in the first draft of this doc. |
 
-None of this is a rename exercise — each row needs verifying against the
-actual generated struct in the pinned Lumina.Excel version, then rechecking
-against the fixtures.
+The two `RowRef` shapes in play:
+- `RowRef<T>` (named typed columns): `.Value` (direct `T`), `.ValueNullable`, `.IsValid`, `.RowId`.
+- `RowRef` (untyped — `ENpcData` elements, `Level.Object`, `Level.EventId`): `.Is<T>()`, `.GetValueOrDefault<T>()`, `.TryGetValue<T>(out T)`, `.RowId`, `.RowType`.
+
+Net effect: this port needs **zero** hand-written `[Sheet(...)]` structs (the
+`LeveGuildleveAssignment` workaround ChilledLeves needed was for a different,
+unrelated sheet path — not a sign this project needs the same treatment).
+Every accessor the current engine uses has a direct, named equivalent.
+
+Confirmed pinned versions (read off the user's current Dalamud dev install
+file version info): `Lumina.dll` 7.6.0, `Lumina.Excel.dll` 7.5.1. NuGet only
+had `Lumina.Excel` up to 7.5.0 at scaffold time; used that instead (assembly
+version reports as 7.0.0.0 regardless — Lumina doesn't bump `AssemblyVersion`
+with every release, so this mismatch is expected, not a sign of drift).
 
 ## Sequence
 
@@ -76,12 +89,11 @@ against the fixtures.
 7. Merge to `main` only once the new engine's output matches the old one
    across all 36 ARR levemetes, not just the 6 fixtures.
 
-## Open questions to resolve while scaffolding
+## Status
 
-- Does the pinned Lumina.Excel version expose `ENpcBase.ENpcData` at all,
-  and as what type?
-- Does its generated `Leve` struct name `LeveRewardItem`/`Town`, or do those
-  need the manual-struct workaround?
-- Which Lumina.Excel version does the current `Dalamud.NET.Sdk/14.0` pin
-  ship, so the standalone project matches what ChilledLeves will eventually
-  run against?
+Step 1 (scaffold) and the struct-shape questions are done — see the table
+above. Next: step 2, port the "is this NPC a levemete" test using the
+confirmed `ENpcData`/`RowRef` API and check it against the 36-NPC count
+from [project_levemete_model](../../.claude/projects/c--Users-mrben-Documents-GitHub-ffxiv-levefinder/memory/project_levemete_model.md).
+That step does need a real game install path (sqpack data, not just the
+assembly), unlike the struct-shape dump.
