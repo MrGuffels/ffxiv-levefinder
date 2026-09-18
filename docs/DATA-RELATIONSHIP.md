@@ -149,17 +149,35 @@ Gotcha: `Map.TerritoryType` comes back empty for some maps (map 11, Limsa Lomins
 
 ## Unshipped rows
 
-Some leves were never released and never localised. They keep their Japanese name in the English sheet and carry a stub description:
+Some leves were never released and never localised. They keep their Japanese name in the English sheet and carry a stub description of 94–101 characters, against 531–731 for live rows.
 
-| ID | Name | Description length |
-|---|---|---|
-| 552 | 懐柔任務：入植地の番犬候補 | 98 |
-| 554 | 捜索任務：ばらまかれた妖花の種 | 99 |
-| — | (live rows for comparison) | 531–731 |
+Detect them by testing the name for any character at or above `U+2E80` while reading the English sheet. Across all 1808 rows that yields exactly 13:
 
-Detect them by testing the name for any character at or above `U+2E80` while reading the English sheet. Six such rows sit in the Limsa pool alone (508, 525, 552, 554, 597, 822).
+| ID | Lvl | Type | Town | Issued at | Name |
+|---|---|---|---|---|---|
+| 508 | 1 | Battlecraft | Limsa Lominsa | Red Rooster Stead | 獲得任務：オーレリアのバラスト袋 |
+| 514 | 1 | Battlecraft | Ul'dah | Scorpion Crossing | 獲得任務：装飾用の羽 |
+| 525 | 5 | Battlecraft | Limsa Lominsa | Red Rooster Stead | 討伐任務：シープを狙う獣たち |
+| 531 | 5 | Battlecraft | Ul'dah | Scorpion Crossing | 討伐任務：ウルダハ近郊の害虫駆除 |
+| 552 | 10 | Battlecraft | Limsa Lominsa | Swiftperch | 懐柔任務：入植地の番犬候補 |
+| 554 | 10 | Battlecraft | Limsa Lominsa | Swiftperch | 捜索任務：ばらまかれた妖花の種 |
+| 562 | 10 | Battlecraft | Ul'dah | Horizon | 懐柔任務：発破代わりのボム |
+| 564 | 10 | Battlecraft | Ul'dah | Horizon | 捜索任務：ペイストの罠 |
+| 582 | 15 | Battlecraft | Ul'dah | Camp Drybone | 追撃任務：砂を呼ぶゴート |
+| 597 | 20 | Battlecraft | Limsa Lominsa | Moraby Drydocks | 討伐任務：放牧されたドードー退治 |
+| 822 | 30 | The Maelstrom | Limsa Lominsa | Costa del Sol | 援護指令：第426洞穴団せん滅作戦 |
+| 827 | 30 | Order of the Twin Adder | Gridania | Camp Tranquil | 援護指令：白狼隊の実戦訓練 |
+| 832 | 30 | Immortal Flames | Ul'dah | Little Ala Mhigo | 援護指令：アラミゴ志願兵の実戦訓練 |
 
-Note that the console renders these as `????:????????` under a non-UTF-8 code page, which looks like a placeholder string but is not — inspect the char codes, not the printed text.
+This list was confirmed against an independently maintained in-game ignore list — 13 for 13, no false positives and no misses.
+
+They are all Battlecraft or Grand Company; no crafting or gathering row is affected. The Grand Company entries are exactly one per company, all level 30, all named 援護指令 ("support order"). The ten battlecraft rows split five Limsa / five Ul'dah with none for Gridania, and use task-type name prefixes the live leves never do: 獲得 (acquisition), 討伐 (subjugation), 懐柔 (pacification), 捜索 (search), 追撃 (pursuit).
+
+Note that the console renders these as `????:????????` under a non-UTF-8 code page, which looks like a placeholder string but is not — inspect the char codes, or set `Console.OutputEncoding`, rather than trusting the printed text.
+
+### Blank padding rows
+
+Separate and unrelated: 51 rows are entirely empty — every field zero, no name, no `Town`, no place. They occupy IDs 0–20, 662–673 and a sparse run through 836–877. These are sheet padding rather than unshipped content, and no place- or town-based rule will ever return them.
 
 ## Limits
 
