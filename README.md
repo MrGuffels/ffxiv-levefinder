@@ -28,7 +28,7 @@ The crafting classes are allocated in `LeveRewardItem` groups that straddle the 
 
 ## Accuracy
 
-The rules are derived from the game data and verified against live in-game state, captured with a debugger plugin, for five levemetes covering both hub cities and three settlements:
+The rules are derived from the game data and verified against live in-game state, captured with a debugger plugin, for six levemetes — all three city-state hubs and three settlements:
 
 | NPC | ID | Role | Leves | Result |
 |---|---|---|---|---|
@@ -37,8 +37,11 @@ The rules are derived from the game data and verified against live in-game state
 | Nyell | 1000823 | Quarrymill | 87 | exact match |
 | T'mokkri | 1000970 | Limsa Lominsa hub | 162 | every observed row present |
 | Gontrant | 1000101 | Gridania hub | 188 | every observed row present |
+| Eustace | 1001794 | Ul'dah hub | 161 | every observed row present |
 
-Eustace (`1001794`, Ul'dah) uses the same hub code path but has not been checked against the game.
+Between them these cover towns carrying two, three and eight crafting classes. Each hub resolves exactly its city's guilds — Blacksmith/Armorer/Culinarian for Limsa, Carpenter/Leatherworker for Gridania, Goldsmith/Weaver/Alchemist for Ul'dah.
+
+The list of unshipped rows the tool excludes was also confirmed independently: the detection rule finds exactly 13 across all 1808 leves, matching a hand-maintained in-game ignore list with no false positives and no misses.
 
 Note that a levemete's in-game list is **capped per class and level** — 4 battlecraft, 2 gathering, 3 crafting — so you can never see the full pool at once. This tool reports the whole pool. When comparing against the game, treat presence as evidence and absence as inconclusive.
 

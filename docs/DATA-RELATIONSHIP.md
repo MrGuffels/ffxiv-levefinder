@@ -18,7 +18,7 @@ Two traps:
 
 ### Verification status
 
-The model reproduces in-game debugger output exactly for Swygskyf (`1001788`), Orwen (`1001791`) and T'mokkri (`1000970`), including every row of a four-capture scroll of T'mokkri's list.
+The model reproduces in-game debugger output for six levemetes — all three city-state hubs (T'mokkri `1000970`, Gontrant `1000101`, Eustace `1001794`) and three settlements (Swygskyf `1001788`, Orwen `1001791`, Nyell `1000823`). The settlement results match exactly; the hub results contain every observed row across multi-capture scrolls of their lists.
 
 Note that the in-game list is **capped per class and level** — 4 battlecraft, 2 gathering, 3 crafting. You can never see a levemete's full pool at once, so absence from an in-game capture is not evidence that a leve is not offered. Only presence is.
 
