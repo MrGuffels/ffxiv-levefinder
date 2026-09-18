@@ -122,8 +122,25 @@ with every release, so this mismatch is expected, not a sign of drift).
   specifically (proves the two engines agree, not yet proves the shared
   model against the game beyond what was already verified).
 
-- **Next: step 6.** Run this engine across all 36 ARR-and-later levemetes
-  (not just the 6 fixtures) and diff against the SaintCoinach engine's
-  output for each, before considering this backend a drop-in replacement.
-  Only after that: try swapping the standalone `Lumina.GameData` bootstrap
-  for `Svc.Data`/ECommons to prove it runs live inside ChilledLeves.
+- **Step 6 — done.** Ran both engines across all 36 levemetes (the full
+  roster from the levemete scan, ARR through Dawntrail) and diffed each
+  as an ID set. **Exact match, zero mismatches, on all 36** — including
+  the five post-ARR levemetes (Eloin 360, Keltraeng 165, Eirikur 165,
+  Grigge 120, Malihali 120) that the risk table above flagged as untested
+  for the ARR-specific ties/craft-group logic. None of them needed
+  special-casing; the shared algorithm handled them the same way in both
+  engines.
+
+  **Caveat, so this isn't overstated:** this proves the Lumina port
+  reproduces the SaintCoinach engine bit-for-bit across the whole roster.
+  It does *not* independently re-verify the underlying model against live
+  game state beyond what
+  [project_verification_ground_truth](../../.claude/projects/c--Users-mrben-Documents-GitHub-ffxiv-levefinder/memory/project_verification_ground_truth.md)
+  already covers (6 ARR fixtures) — the post-ARR levemetes were never
+  checked against an in-game capture by either engine, only against each
+  other. If those NPCs' allocation turns out to work differently than
+  ARR's, both engines would agree while both being wrong.
+
+- **Next:** try swapping the standalone `Lumina.GameData` bootstrap for
+  `Svc.Data`/ECommons calls to prove the same resolution code runs live
+  inside a Dalamud plugin process — the actual goal for ChilledLeves.
