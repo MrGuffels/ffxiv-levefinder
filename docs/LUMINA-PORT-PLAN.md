@@ -102,6 +102,28 @@ with every release, so this mismatch is expected, not a sign of drift).
   Bonus: `GuildleveAssignment.Type` also confirms every post-ARR levemete
   in ChilledLeves' hardcoded list (Eloin/Temple, Eirikur/Crystarium,
   Grigge/Gleaner, Malihali/Tuliyollal) is a real levemete, not a client.
-- **Next: step 3**, the two-hop `Level{Levemete}` → settlement resolution
-  (`Leve.LevelLevemete.Value.Object`), needed for the non-hub fixtures
-  (Swygskyf/Orwen/Nyell).
+- **Steps 3-5 — done and verified.** `ResolveLeves` in
+  `src/LeveFinder.Lumina/Program.cs` is a full, direct port of the
+  SaintCoinach engine (`../LeveFinder/Program.cs`): settlement resolution
+  via `Leve.LevelLevemete.Value.Object`, `LeveRewardItem`/`Town` grouping
+  via their now-confirmed named `RowRef<T>` properties (no raw-column
+  workaround needed, per the table above), and hub resolution via
+  `Level.Map` → `TerritoryType.PlaceName`/`PlaceNameZone` → `Town.Name`
+  string matching, same shape as the original.
+
+  Regression: built both engines and ran all 6 verified fixtures
+  (Swygskyf, Orwen, Nyell, and all three hubs — T'mokkri, Gontrant,
+  Eustace) through each, diffing the resulting leve-ID sets with `comm`.
+  **Exact match, zero differences, on every fixture** — including the
+  hubs, which the six-fixture table in
+  [project_verification_ground_truth](../../.claude/projects/c--Users-mrben-Documents-GitHub-ffxiv-levefinder/memory/project_verification_ground_truth.md)
+  only confirms as subsets against in-game captures; matching the
+  SaintCoinach engine exactly here is a stronger check for the port
+  specifically (proves the two engines agree, not yet proves the shared
+  model against the game beyond what was already verified).
+
+- **Next: step 6.** Run this engine across all 36 ARR-and-later levemetes
+  (not just the 6 fixtures) and diff against the SaintCoinach engine's
+  output for each, before considering this backend a drop-in replacement.
+  Only after that: try swapping the standalone `Lumina.GameData` bootstrap
+  for `Svc.Data`/ECommons to prove it runs live inside ChilledLeves.
