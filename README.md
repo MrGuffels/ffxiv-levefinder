@@ -26,6 +26,33 @@ There is no column in the game data that says "this NPC hands out these leves," 
 
 The crafting classes are allocated in `LeveRewardItem` groups that straddle the city/settlement boundary, and three city-state hub levemetes behave differently again. [docs/DATA-RELATIONSHIP.md](docs/DATA-RELATIONSHIP.md) walks through the whole thing with the evidence.
 
+## How it works
+
+```mermaid
+flowchart TD
+    A["NPC ID"] --> B{"ENpcData contains a\nGuildleveAssignment row?"}
+    B -- no --> C["Not a levemete\n(rejected with an explanation)"]
+    B -- yes --> D{"Any Leve.Level{Levemete}\nresolves to this NPC?"}
+
+    D -- "yes\n(Battlecraft/Miner/Botanist/GC)" --> E["Settlement =\nPlaceName{Issued} of that leve"]
+    E --> F["Own leves:\nsame PlaceName{Issued}, same GC flag,\nnot a crafting class"]
+    E --> G["Craft groups:\ngroup all crafting leves by LeveRewardItem;\nkeep groups this settlement wins"]
+
+    D -- "no\n(Gontrant / T'mokkri / Eustace)" --> H["Town = resolved from the NPC's\nmap placement, not from any leve"]
+    H --> I["Town-wide leves:\nLeve.Town == this Town,\nnot crafting, not GC"]
+    H --> J["Craft groups:\nsame grouping, but keep only the\ngroups this Town's own city wins"]
+
+    F --> K["Combine"]
+    G --> K
+    I --> K
+    J --> K
+    K --> L{"Row is unshipped?\n(untranslated JP name,\nstub description)"}
+    L -- yes --> M["Excluded by default\n(--include-unused keeps it)"]
+    L -- no --> N["Final leve list"]
+```
+
+A leve group "wins" a settlement when it holds the most of that group's rows there; a tie between a city and its outlying settlement goes to the city. See [docs/DATA-RELATIONSHIP.md](docs/DATA-RELATIONSHIP.md) for why each of these steps exists and the game-data evidence behind it.
+
 ## Accuracy
 
 The rules are derived from the game data and verified against live in-game state, captured with a debugger plugin, for six levemetes — all three city-state hubs and three settlements:
