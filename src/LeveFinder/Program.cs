@@ -12,6 +12,13 @@ namespace SaintCoinach.LeveFinder {
         // has both a regular and a Grand Company levemete, these split between them.
         static readonly int[] GrandCompanyTypes = { 13, 14, 15 };
 
+        // Fisher leve LeveClient -> levemete ENpc. PlaceName{Issued} for these blocks
+        // is bad data (says the city) even though the game hands them out at a regional
+        // levemete instead of/as well as the hub; verified in-game 2026-09-18.
+        static readonly Dictionary<int, int> FisherClientOverride = new() {
+            { 141, 1004342 }, // Wyrkholsk (Red Rooster Stead) - PlaceName{Issued} wrongly says Limsa Lominsa
+        };
+
         static int Main(string[] args) {
             if (args.Length < 2) {
                 Console.WriteLine("Usage: SaintCoinach.LeveFinder <gamePath> <npcId> [--include-unused]");
@@ -56,7 +63,8 @@ namespace SaintCoinach.LeveFinder {
                 // Battlecraft, gathering and Grand Company leves sit at the settlement
                 // they are issued at.
                 var own = leveSheet
-                    .Where(lv => lv.PlaceNameIssued?.Key == place.Key
+                    .Where(lv => (lv.PlaceNameIssued?.Key == place.Key
+                                  || (FisherClientOverride.TryGetValue(LeveClientOf(lv), out var overrideNpc) && overrideNpc == npcId))
                                  && IsGrandCompany(lv) == wantGC
                                  && !IsCrafting(lv));
 
@@ -143,6 +151,10 @@ namespace SaintCoinach.LeveFinder {
 
         static int RewardGroupOf(Leve leve) {
             return Convert.ToInt32(((IRelationalRow)leve).GetRaw("LeveRewardItem"));
+        }
+
+        static int LeveClientOf(Leve leve) {
+            return Convert.ToInt32(((IRelationalRow)leve).GetRaw("LeveClient"));
         }
 
         // The PlaceName the city itself is issued under (e.g. "Limsa Lominsa").

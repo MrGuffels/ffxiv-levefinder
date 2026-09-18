@@ -20,6 +20,13 @@ namespace LeveFinder.Lumina {
         static readonly string[] SheetsOfInterest = { "LeveAssignmentType" };
         static readonly uint[] GrandCompanyTypes = { 13, 14, 15 };
 
+        // Fisher leve LeveClient -> levemete ENpc. PlaceName{Issued} for these blocks
+        // is bad data (says the city) even though the game hands them out at a regional
+        // levemete instead of/as well as the hub; verified in-game 2026-09-18.
+        static readonly Dictionary<uint, uint> FisherClientOverride = new() {
+            { 141, 1004342 }, // Wyrkholsk (Red Rooster Stead) - PlaceName{Issued} wrongly says Limsa Lominsa
+        };
+
         static int Main(string[] args) {
             if (args.Length == 0) {
                 DumpSheetShapes();
@@ -74,7 +81,8 @@ namespace LeveFinder.Lumina {
                 var placeKey = designated[0].PlaceNameIssued.RowId;
                 var wantGC = IsGrandCompany(designated[0]);
 
-                var own = allLeves.Where(lv => lv.PlaceNameIssued.RowId == placeKey
+                var own = allLeves.Where(lv => (lv.PlaceNameIssued.RowId == placeKey
+                                                 || (FisherClientOverride.TryGetValue(lv.LeveClient.RowId, out var overrideNpc) && overrideNpc == npcId))
                                                 && IsGrandCompany(lv) == wantGC
                                                 && !IsCrafting(lv));
 
